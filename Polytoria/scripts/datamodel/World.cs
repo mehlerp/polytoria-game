@@ -126,6 +126,7 @@ public sealed partial class World : Instance
 	public WorldsService Worlds => FindChild<WorldsService>("Worlds")!;
 	public SocialService Social => FindChild<SocialService>("Social")!;
 	public HookService Hooks => FindChild<HookService>("Hooks")!;
+	public TimerService Timer => FindChild<TimerService>("Timer")!;
 #if CREATOR
 	public CreatorContextService CreatorContext => FindChild<CreatorContextService>("CreatorContext")!;
 #endif
@@ -740,6 +741,14 @@ public sealed partial class World : Instance
 			hookService = Globals.LoadInstance<HookService>(Root);
 			hookService.NameOverride = "Hooks";
 			hookService.NetworkParent = this;
+		}
+
+		TimerService? timerService = FindChild<TimerService>("Timer");
+		if (timerService == null)
+		{
+			timerService = Globals.LoadInstance<TimerService>(Root);
+			timerService.NameOverride = "Timer";
+			timerService.NetworkParent = this;
 		}
 
 		CaptureService? captureService = FindChild<CaptureService>("Capture");
