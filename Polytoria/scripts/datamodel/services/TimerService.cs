@@ -8,7 +8,7 @@ using Polytoria.Attributes;
 using Polytoria.Scripting;
 // using Polytoria.Shared;
 // using Polytoria.Utils;
-// using System;
+using System;
 // using System.Collections.Generic;
 
 namespace Polytoria.Datamodel.Services;
@@ -23,12 +23,12 @@ public sealed partial class TimerService : Instance
 		return timer;
 	}
 
+
 	public override void Init()
 	{
 		base.Init();
 		SetProcess(true);
 	}
-
 
 	public override void Process(double delta)
 	{
@@ -72,9 +72,8 @@ public sealed partial class TimerService : Instance
 			get => _duration;
 			set
 			{
-				_duration = value;
-				// TODO: clamp progress value
-				// TODO: call finished callback properly
+				_duration = MathF.Max(value, 0);
+				InvokeSpilledTime();
 			}
 		}
 
@@ -84,9 +83,8 @@ public sealed partial class TimerService : Instance
 			get => _progress;
 			set
 			{
-				_progress = value;
-				// TODO: clamp progress value
-				// TODO: call finished callback properly
+				_progress = MathF.Max(value, 0);
+				InvokeSpilledTime();
 			}
 		}
 
@@ -96,43 +94,65 @@ public sealed partial class TimerService : Instance
 			get => _duration - _progress;
 			set
 			{
-				// TODO: clamp progress value
-				// TODO: call finished callback properly
+				_progress =  _duration - MathF.Min(value, _duration);
+				InvokeSpilledTime();
 			}
 		}
 
 		[ScriptProperty] public bool IsRunning => _running && !_paused;
 		[ScriptProperty] public bool IsPaused => _paused;
+		[ScriptProperty] public bool IsStopped => !_running;
 
 		// TODO: should return how many times the timer has finished since the last update tick
 		[ScriptProperty]
-		public PTSignal<int> Finished { get; private set; } = new();
+		public PTSignal<float> Finished { get; private set; } = new();
+
+
+		// TODO: maybe remove timer if garbage collected?
+
+
+		private void InvokeSpilledTime()
+		{
+			if (_progress >= _duration)
+			{
+				float times = _progress / _duration;
+				_progress = _duration <= 0 ? 0 : _progress % _duration;
+				Finished.Invoke(times);
+			}
+		}
+
 
 		[ScriptMethod]
 		public void Start()
 		{
-			_running = true;
-			_paused = false;
-			// TODO: start running the timer
+			if (!_running || _paused)
+			{
+				_running = true;
+				_paused = false;
+				// TODO: add to running timer list
+			}
 		}
 
 		[ScriptMethod]
 		public void Pause()
 		{
-			if (_running)
+			if (_running && !_paused)
 			{
 				_paused = true;
-				// TODO: pause the timer
+				// TODO: remove from running timer list
 			}
 		}
 
 		[ScriptMethod]
 		public void Stop()
 		{
-			_running = false;
-			_paused = false;
-			_progress = 0;
-			// TODO: stop the timer
+			if (_running)
+			{
+				_running = false;
+				_paused = false;
+				_progress = 0;
+				// TODO: remove from running timer list
+			}
 		}
 	}
 }
